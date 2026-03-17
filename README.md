@@ -92,6 +92,10 @@ $user->notify(new InvoicePaid($invoice));
 | `->attachment(array $attachment)` | Добавить произвольное вложение |
 | `->replyTo(string $messageId)` | Ответить на сообщение |
 | `->forward(string $messageId)` | Переслать сообщение |
+| `->photo(string $filePath)` | Загрузить и прикрепить изображение |
+| `->video(string $filePath)` | Загрузить и прикрепить видео |
+| `->audio(string $filePath)` | Загрузить и прикрепить аудио |
+| `->file(string $filePath)` | Загрузить и прикрепить файл |
 | `->send()` | Отправить сообщение напрямую (без Notification) |
 
 ## Прямая отправка из кода
@@ -139,6 +143,42 @@ public function sendWelcome(MaxApi $api): void
 ```php
 app(MaxApi::class)->sendMessage($message);
 ```
+## Медиафайлы
+
+Методы `->photo()`, `->video()`, `->audio()` и `->file()` автоматически загружают файл на серверы MAX и прикрепляют его к сообщению. Достаточно передать путь к файлу:
+
+```php
+// Изображение с текстом и кнопкой
+MaxMessage::create('Расчёт стоимости ремонта')
+    ->toChat(-123456)
+    ->photo(storage_path('app/images/banner.jpg'))
+    ->inlineKeyboard([
+        [
+            ['type' => 'link', 'text' => 'Рассчитать стоимость', 'url' => 'https://example.com/calc'],
+        ],
+    ])
+    ->send();
+```
+
+```php
+// Отправка документа пользователю
+MaxMessage::create('Ваш отчёт готов')
+    ->to($user->max_user_id)
+    ->file(storage_path('app/reports/report.pdf'))
+    ->send();
+```
+
+```php
+// Видео
+MaxMessage::create('Видеоинструкция')
+    ->toChat($chatId)
+    ->video(storage_path('app/videos/tutorial.mp4'))
+    ->send();
+```
+
+Поддерживаемые форматы: изображения (JPG, PNG, GIF, TIFF, BMP, HEIC), видео (MP4, MOV, MKV, WEBM), аудио (MP3, WAV, M4A), файлы (любые). Максимальный размер — 4 ГБ.
+
+> **Примечание:** после загрузки больших файлов может потребоваться небольшая пауза перед отправкой — сервер MAX обрабатывает файл асинхронно. Если получаете ошибку `attachment.not.ready`, повторите отправку через несколько секунд.
 
 ## Пример: кнопки
 

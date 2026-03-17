@@ -155,6 +155,86 @@ class MaxMessage
     }
 
     /**
+     * Upload and attach an image.
+     *
+     * @param  string  $filePath  Absolute path to the image file (JPG, PNG, GIF, etc.)
+     */
+    public function photo(string $filePath): static
+    {
+        /** @var MaxApi $api */
+        $api = app(MaxApi::class);
+        $result = $api->uploadFile($filePath, 'image');
+
+        $this->attachments[] = [
+            'type' => 'image',
+            'payload' => $result,
+        ];
+
+        return $this;
+    }
+
+    /**
+     * Upload and attach a video.
+     *
+     * @param  string  $filePath  Absolute path to the video file (MP4, MOV, etc.)
+     */
+    public function video(string $filePath): static
+    {
+        /** @var MaxApi $api */
+        $api = app(MaxApi::class);
+        $result = $api->uploadFile($filePath, 'video');
+
+        $this->attachments[] = [
+            'type' => 'video',
+            'payload' => [
+                'token' => $result['token'],
+            ],
+        ];
+
+        return $this;
+    }
+
+    /**
+     * Upload and attach an audio file.
+     *
+     * @param  string  $filePath  Absolute path to the audio file (MP3, WAV, etc.)
+     */
+    public function audio(string $filePath): static
+    {
+        /** @var MaxApi $api */
+        $api = app(MaxApi::class);
+        $result = $api->uploadFile($filePath, 'audio');
+
+        $this->attachments[] = [
+            'type' => 'audio',
+            'payload' => [
+                'token' => $result['token'],
+            ],
+        ];
+
+        return $this;
+    }
+
+    /**
+     * Upload and attach a file.
+     *
+     * @param  string  $filePath  Absolute path to the file
+     */
+    public function file(string $filePath): static
+    {
+        /** @var MaxApi $api */
+        $api = app(MaxApi::class);
+        $result = $api->uploadFile($filePath, 'file');
+
+        $this->attachments[] = [
+            'type' => 'file',
+            'payload' => $result,
+        ];
+
+        return $this;
+    }
+
+    /**
      * Add a raw attachment array.
      */
     public function attachment(array $attachment): static
