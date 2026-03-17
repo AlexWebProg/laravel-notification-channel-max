@@ -260,4 +260,17 @@ class MaxMessage
 
         return $body;
     }
+
+    /**
+     * Send this message immediately via MaxApi.
+     *
+     * @throws \NotificationChannels\Max\Exceptions\CouldNotSendNotification
+     */
+    public function send(): array
+    {
+        /** @var MaxApi $api */
+        $api = app(MaxApi::class);
+
+        return $api->sendMessage($this)->json();
+    }
 }

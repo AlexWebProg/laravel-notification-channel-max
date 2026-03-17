@@ -92,6 +92,53 @@ $user->notify(new InvoicePaid($invoice));
 | `->attachment(array $attachment)` | Добавить произвольное вложение |
 | `->replyTo(string $messageId)` | Ответить на сообщение |
 | `->forward(string $messageId)` | Переслать сообщение |
+| `->send()` | Отправить сообщение напрямую (без Notification) |
+
+## Прямая отправка из кода
+
+Помимо стандартного механизма Laravel Notifications, можно отправлять сообщения напрямую — из контроллеров, job'ов, console command'ов и любого другого места.
+
+### Вариант 1: Цепочка с `->send()`
+
+Самый компактный способ — вызов `->send()` в конце цепочки:
+
+```php
+use NotificationChannels\Max\MaxMessage;
+
+MaxMessage::create('Здравствуйте! Нажмите кнопку ниже.')
+    ->to(123456)
+    ->inlineKeyboard([
+        [
+            ['type' => 'request_contact', 'text' => 'Отправить мой номер телефона'],
+        ],
+    ])
+    ->send();
+```
+
+### Вариант 2: Через MaxApi (dependency injection)
+
+Если нужен контроль над ответом или вы предпочитаете явное внедрение зависимостей:
+
+```php
+use NotificationChannels\Max\MaxApi;
+use NotificationChannels\Max\MaxMessage;
+
+public function sendWelcome(MaxApi $api): void
+{
+    $message = MaxMessage::create('Добро пожаловать!')
+        ->to($user->max_user_id);
+
+    $response = $api->sendMessage($message);
+}
+```
+
+### Вариант 3: Через контейнер
+
+В местах, где DI недоступен (замыкания, статические методы):
+
+```php
+app(MaxApi::class)->sendMessage($message);
+```
 
 ## Пример: кнопки
 
