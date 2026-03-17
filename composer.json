@@ -1,0 +1,43 @@
+{
+    "name": "alexwebprog/laravel-notification-channel-max",
+    "description": "MAX Messenger notification channel for Laravel",
+    "authors": [
+        {
+            "name": "Alexey Povarov",
+            "email": "povarovalexey@gmail.com",
+            "homepage": "https://github.com/AlexWebProg/"
+        }
+    ],
+    "homepage": "https://github.com/AlexWebProg/laravel-notification-channel-max",
+    "keywords": ["laravel", "notifications", "max", "messenger", "max.ru"],
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "illuminate/notifications": "^10.0|^11.0|^12.0",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "illuminate/http": "^10.0|^11.0|^12.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^8.0|^9.0|^10.0",
+        "phpunit/phpunit": "^10.0|^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "NotificationChannels\\Max\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "NotificationChannels\\Max\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "NotificationChannels\\Max\\MaxServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
