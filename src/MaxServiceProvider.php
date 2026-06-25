@@ -16,7 +16,8 @@ class MaxServiceProvider extends ServiceProvider
         );
 
         $this->app->singleton(MaxApi::class, function ($app) {
-            $token = $app['config']['max-notification.token'];
+            $config = $app['config']['max-notification'];
+            $token = $config['token'] ?? null;
 
             if (empty($token)) {
                 throw new \RuntimeException(
@@ -24,7 +25,22 @@ class MaxServiceProvider extends ServiceProvider
                 );
             }
 
-            return new MaxApi($token);
+            $baseUrl = $config['base_url'] ?? 'https://platform-api2.max.ru';
+            $verifySsl = $config['verify_ssl'] ?? true;
+            $caCertificate = $config['ca_certificate'] ?? null;
+
+            if ($verifySsl === false || $verifySsl === 'false') {
+                // SSL verification disabled
+                $sslOption = false;
+            } elseif ($caCertificate) {
+                // Custom CA certificate path
+                $sslOption = $caCertificate;
+            } else {
+                // null = MaxApi will use bundled certificate
+                $sslOption = null;
+            }
+
+            return new MaxApi($token, $baseUrl, $sslOption);
         });
 
         $this->app->singleton(MaxChannel::class, function ($app) {

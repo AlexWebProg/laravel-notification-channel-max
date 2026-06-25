@@ -2,19 +2,51 @@
 
 namespace NotificationChannels\Max;
 
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use NotificationChannels\Max\Exceptions\CouldNotSendNotification;
 
 class MaxApi
 {
-    protected const BASE_URL = 'https://platform-api.max.ru';
-
     protected string $token;
 
-    public function __construct(string $token)
+    protected string $baseUrl;
+
+    protected string|bool|null $verifySsl;
+
+    public function __construct(string $token, ?string $baseUrl = null, string|bool|null $verifySsl = null)
     {
         $this->token = $token;
+        $this->baseUrl = rtrim($baseUrl ?? 'https://platform-api2.max.ru', '/');
+
+        // Default: use bundled Russian Trusted CA certificate
+        if ($verifySsl === null) {
+            $bundledCert = __DIR__ . '/../resources/certs/subca_ssl_rsa2024.crt';
+            $this->verifySsl = file_exists($bundledCert) ? $bundledCert : true;
+        } else {
+            $this->verifySsl = $verifySsl;
+        }
+    }
+
+    /**
+     * Create a configured HTTP client instance.
+     */
+    protected function httpClient(): PendingRequest
+    {
+        $client = Http::withHeaders([
+            'Authorization' => $this->token,
+        ]);
+
+        if ($this->verifySsl === false) {
+            $client = $client->withoutVerifying();
+        } elseif (is_string($this->verifySsl) && file_exists($this->verifySsl)) {
+            $client = $client->withOptions([
+                'verify' => $this->verifySsl,
+            ]);
+        }
+
+        return $client;
     }
 
     /**
@@ -27,12 +59,11 @@ class MaxApi
         $queryParams = $message->toQueryParams();
         $body = $message->toBody();
 
-        $url = self::BASE_URL . '/messages?' . http_build_query($queryParams);
+        $url = $this->baseUrl . '/messages?' . http_build_query($queryParams);
 
-        $response = Http::withHeaders([
-            'Authorization' => $this->token,
-            'Content-Type' => 'application/json',
-        ])->post($url, $body);
+        $response = $this->httpClient()
+            ->withHeaders(['Content-Type' => 'application/json'])
+            ->post($url, $body);
 
         if ($response->failed()) {
             throw CouldNotSendNotification::apiError(
@@ -54,11 +85,9 @@ class MaxApi
      */
     public function getUploadUrl(string $type = 'image'): array
     {
-        $url = self::BASE_URL . '/uploads?' . http_build_query(['type' => $type]);
+        $url = $this->baseUrl . '/uploads?' . http_build_query(['type' => $type]);
 
-        $response = Http::withHeaders([
-            'Authorization' => $this->token,
-        ])->post($url);
+        $response = $this->httpClient()->post($url);
 
         if ($response->failed()) {
             throw CouldNotSendNotification::apiError(
@@ -86,13 +115,13 @@ class MaxApi
         $uploadUrl = $uploadData['url'];
 
         // Step 2: Upload file to the URL
-        $response = Http::withHeaders([
-            'Authorization' => $this->token,
-        ])->attach(
-            'data',
-            file_get_contents($filePath),
-            basename($filePath)
-        )->post($uploadUrl);
+        $response = $this->httpClient()
+            ->timeout(120)
+            ->attach(
+                'data',
+                file_get_contents($filePath),
+                basename($filePath)
+            )->post($uploadUrl);
 
         if ($response->failed()) {
             throw CouldNotSendNotification::apiError(
