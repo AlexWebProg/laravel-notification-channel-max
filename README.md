@@ -20,6 +20,25 @@ MAX_BOT_TOKEN=your-bot-token-here
 php artisan vendor:publish --tag=max-notification-config
 ```
 
+## Конфигурация
+
+### API URL и сертификат Минцифры
+
+Начиная с версии 2.0, пакет по умолчанию работает с `platform-api2.max.ru` и включает встроенный сертификат Минцифры РФ (Russian Trusted CA) для TLS-верификации. Дополнительная настройка не требуется.
+
+При необходимости можно переопределить параметры в `.env`:
+
+```env
+# Свой URL API (по умолчанию: https://platform-api2.max.ru)
+MAX_API_BASE_URL=https://platform-api2.max.ru
+
+# Свой CA-сертификат (по умолчанию: встроенный сертификат Минцифры)
+MAX_CA_CERTIFICATE=/path/to/custom-ca.pem
+
+# Отключить проверку SSL (только для отладки!)
+MAX_VERIFY_SSL=false
+```
+
 ## Использование
 
 ### 1. Добавьте роутинг в модель
@@ -203,6 +222,20 @@ MaxMessage::create('Выберите действие:')
 MaxMessage::create('<b>Внимание!</b> Обновление системы в 03:00')
     ->html()
     ->silent();
+```
+
+## Обновление с v1.x
+
+В версии 2.0 API URL по умолчанию изменён с `platform-api.max.ru` на `platform-api2.max.ru`. Обновите constraint в `composer.json` вашего проекта:
+
+```json
+"alexwebprog/laravel-notification-channel-max": "^2.0"
+```
+
+Если вы ранее публиковали конфиг (`config/max-notification.php`), опубликуйте его заново для добавления новых параметров:
+
+```bash
+php artisan vendor:publish --tag=max-notification-config --force
 ```
 
 ## Лицензия
