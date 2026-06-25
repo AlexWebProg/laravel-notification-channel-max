@@ -1,6 +1,9 @@
 {
     "name": "alexwebprog/laravel-notification-channel-max",
     "description": "MAX Messenger notification channel for Laravel",
+    "homepage": "https://github.com/AlexWebProg/laravel-notification-channel-max",
+    "license": "MIT",
+    "keywords": ["laravel", "notifications", "max", "messenger", "max.ru"],
     "authors": [
         {
             "name": "Alexey Povarov",
@@ -8,18 +11,20 @@
             "homepage": "https://github.com/AlexWebProg/"
         }
     ],
-    "homepage": "https://github.com/AlexWebProg/laravel-notification-channel-max",
-    "keywords": ["laravel", "notifications", "max", "messenger", "max.ru"],
-    "license": "MIT",
+    "support": {
+        "issues": "https://github.com/AlexWebProg/laravel-notification-channel-max/issues",
+        "source": "https://github.com/AlexWebProg/laravel-notification-channel-max"
+    },
     "require": {
         "php": "^8.2",
-        "illuminate/notifications": "^10.0|^11.0|^12.0",
-        "illuminate/support": "^10.0|^11.0|^12.0",
-        "illuminate/http": "^10.0|^11.0|^12.0"
+        "illuminate/notifications": "^10.0|^11.0|^12.0|^13.0",
+        "illuminate/support": "^10.0|^11.0|^12.0|^13.0",
+        "illuminate/http": "^10.0|^11.0|^12.0|^13.0",
+        "guzzlehttp/guzzle": "^7.5"
     },
     "require-dev": {
-        "orchestra/testbench": "^8.0|^9.0|^10.0",
-        "phpunit/phpunit": "^10.0|^11.0"
+        "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
+        "phpunit/phpunit": "^10.0|^11.0|^12.0|^13.0"
     },
     "autoload": {
         "psr-4": {
@@ -38,6 +43,9 @@
             ]
         }
     },
-    "minimum-stability": "dev",
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
     "prefer-stable": true
 }
