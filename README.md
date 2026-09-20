@@ -1,4 +1,7 @@
-# MAX Notification Channel для Laravel
+# MAX Notification Channel for Laravel
+
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/alexwebprog/laravel-notification-channel-max.svg?style=flat-square)](https://packagist.org/packages/alexwebprog/laravel-notification-channel-max)
+[![Total Downloads](https://img.shields.io/packagist/dt/alexwebprog/laravel-notification-channel-max.svg?style=flat-square)](https://packagist.org/packages/alexwebprog/laravel-notification-channel-max)
 
 Канал уведомлений Laravel для мессенджера [MAX](https://max.ru).
 
@@ -8,64 +11,44 @@
 composer require alexwebprog/laravel-notification-channel-max
 ```
 
-Добавьте токен бота в `.env`:
-
-```env
-MAX_BOT_TOKEN=your-bot-token-here
-```
-
-Опционально опубликуйте конфиг:
+Опубликуйте конфиг:
 
 ```bash
 php artisan vendor:publish --tag=max-notification-config
 ```
 
-## Конфигурация
+Добавьте токен бота в `.env`:
 
-### API URL и сертификат Минцифры
+```
+MAX_NOTIFICATION_BOT_TOKEN=your-bot-token
+```
 
-Начиная с версии 2.0, пакет по умолчанию работает с `platform-api2.max.ru` и включает встроенный сертификат Минцифры РФ (Russian Trusted CA) для TLS-верификации. Дополнительная настройка не требуется.
+## Настройка
 
-При необходимости можно переопределить параметры в `.env`:
+### URL API и сертификат Минцифры
+
+По умолчанию пакет использует `https://platform-api2.max.ru` и встроенный сертификат удостоверяющего центра Минцифры для проверки SSL. Это работает «из коробки» без дополнительной настройки.
+
+При необходимости вы можете переопределить настройки в `.env`:
 
 ```env
-# Свой URL API (по умолчанию: https://platform-api2.max.ru)
+# Базовый URL API (по умолчанию: https://platform-api2.max.ru)
 MAX_API_BASE_URL=https://platform-api2.max.ru
 
-# Свой CA-сертификат (по умолчанию: встроенный сертификат Минцифры)
-MAX_CA_CERTIFICATE=/path/to/custom-ca.pem
+# Путь к пользовательскому CA-сертификату (по умолчанию: встроенный сертификат Минцифры)
+MAX_CA_CERTIFICATE=/path/to/custom-ca.crt
 
-# Отключить проверку SSL (только для отладки!)
+# Отключить проверку SSL (не рекомендуется для продакшена)
 MAX_VERIFY_SSL=false
 ```
 
 ## Использование
 
-### 1. Добавьте роутинг в модель
+### Канал уведомлений
+
+Добавьте метод `toMax` в ваш класс уведомления:
 
 ```php
-class User extends Authenticatable
-{
-    use Notifiable;
-
-    /**
-     * Куда отправлять уведомления MAX.
-     */
-    public function routeNotificationForMax(): int|array
-    {
-        // Вариант A: отправка пользователю по user_id
-        return $this->max_user_id;
-
-        // Вариант B: отправка в чат
-        // return ['chat_id' => $this->max_chat_id];
-    }
-}
-```
-
-### 2. Создайте уведомление
-
-```php
-use Illuminate\Notifications\Notification;
 use NotificationChannels\Max\MaxChannel;
 use NotificationChannels\Max\MaxMessage;
 
@@ -78,161 +61,150 @@ class InvoicePaid extends Notification
 
     public function toMax($notifiable): MaxMessage
     {
-        return MaxMessage::create("Оплата получена: {$this->invoice->amount} ₽")
-            ->markdown()
-            ->inlineKeyboard([
-                [
-                    ['type' => 'link', 'text' => 'Открыть счёт', 'url' => $this->invoice->url],
-                ],
-            ]);
+        return MaxMessage::create('Ваш счёт оплачен!')
+            ->markdown();
     }
 }
 ```
 
-### 3. Отправьте
+В модели `User` (или другом `Notifiable`) добавьте метод маршрутизации:
 
 ```php
-$user->notify(new InvoicePaid($invoice));
-```
-
-## API — MaxMessage
-
-| Метод | Описание |
-|---|---|
-| `::create(?string $text)` | Статический конструктор |
-| `->text(string $text)` | Текст сообщения (до 4000 символов) |
-| `->to(int $userId)` | Отправить пользователю |
-| `->toChat(int $chatId)` | Отправить в чат |
-| `->markdown()` | Формат Markdown |
-| `->html()` | Формат HTML |
-| `->silent()` | Без уведомления участникам чата |
-| `->disableLinkPreview()` | Отключить превью ссылок |
-| `->inlineKeyboard(array $buttons)` | Добавить инлайн-клавиатуру |
-| `->attachment(array $attachment)` | Добавить произвольное вложение |
-| `->replyTo(string $messageId)` | Ответить на сообщение |
-| `->forward(string $messageId)` | Переслать сообщение |
-| `->photo(string $filePath)` | Загрузить и прикрепить изображение |
-| `->video(string $filePath)` | Загрузить и прикрепить видео |
-| `->audio(string $filePath)` | Загрузить и прикрепить аудио |
-| `->file(string $filePath)` | Загрузить и прикрепить файл |
-| `->send()` | Отправить сообщение напрямую (без Notification) |
-
-## Прямая отправка из кода
-
-Помимо стандартного механизма Laravel Notifications, можно отправлять сообщения напрямую — из контроллеров, job'ов, console command'ов и любого другого места.
-
-### Вариант 1: Цепочка с `->send()`
-
-Самый компактный способ — вызов `->send()` в конце цепочки:
-
-```php
-use NotificationChannels\Max\MaxMessage;
-
-MaxMessage::create('Здравствуйте! Нажмите кнопку ниже.')
-    ->to(123456)
-    ->inlineKeyboard([
-        [
-            ['type' => 'request_contact', 'text' => 'Отправить мой номер телефона'],
-        ],
-    ])
-    ->send();
-```
-
-### Вариант 2: Через MaxApi (dependency injection)
-
-Если нужен контроль над ответом или вы предпочитаете явное внедрение зависимостей:
-
-```php
-use NotificationChannels\Max\MaxApi;
-use NotificationChannels\Max\MaxMessage;
-
-public function sendWelcome(MaxApi $api): void
+public function routeNotificationForMax(): ?int
 {
-    $message = MaxMessage::create('Добро пожаловать!')
-        ->to($user->max_user_id);
-
-    $response = $api->sendMessage($message);
+    return $this->max_user_id;
 }
 ```
 
-### Вариант 3: Через контейнер
+### Прямая отправка
 
-В местах, где DI недоступен (замыкания, статические методы):
+Вы можете отправлять сообщения напрямую без уведомлений:
 
 ```php
-app(MaxApi::class)->sendMessage($message);
+use NotificationChannels\Max\MaxMessage;
+
+MaxMessage::create('Привет!')
+    ->to($maxUserId)
+    ->markdown()
+    ->send();
 ```
+
+Отправка в канал/чат:
+
+```php
+MaxMessage::create('Новый пост в канале')
+    ->toChat($chatId)
+    ->send();
+```
+
+### Использование другого токена бота
+
+Вы можете переопределить токен бота для конкретного сообщения. Это полезно, если у вас несколько ботов:
+
+```php
+MaxMessage::create('Сообщение от другого бота')
+    ->to($maxUserId)
+    ->token('токен-другого-бота')
+    ->send();
+```
+
+В уведомлении:
+
+```php
+public function toMax($notifiable): MaxMessage
+{
+    return MaxMessage::create('Уведомление от другого бота')
+        ->token('токен-другого-бота');
+}
+```
+
+При использовании `->token()` все операции (отправка сообщения, загрузка файлов) будут выполняться с указанным токеном.
+
+## API
+
+| Метод | Описание |
+|---|---|
+| `create(?string $text)` | Создать экземпляр сообщения (статический) |
+| `text(string $text)` | Задать текст сообщения |
+| `to(int $userId)` | Задать ID пользователя-получателя |
+| `toChat(int $chatId)` | Задать ID чата/канала |
+| `token(string $token)` | Использовать другой токен бота |
+| `markdown()` | Формат текста — Markdown |
+| `html()` | Формат текста — HTML |
+| `format(string $format)` | Задать формат текста явно |
+| `disableLinkPreview(bool $disable = true)` | Отключить превью ссылок |
+| `silent(bool $silent = true)` | Отправить без уведомления |
+| `inlineKeyboard(array $buttons)` | Добавить инлайн-клавиатуру |
+| `photo(string $filePath)` | Загрузить и прикрепить изображение |
+| `video(string $filePath)` | Загрузить и прикрепить видео |
+| `audio(string $filePath)` | Загрузить и прикрепить аудио |
+| `file(string $filePath)` | Загрузить и прикрепить файл |
+| `attachment(array $attachment)` | Добавить произвольное вложение |
+| `replyTo(string $messageId)` | Ответить на сообщение |
+| `forward(string $messageId)` | Переслать сообщение |
+| `send()` | Отправить сообщение напрямую |
+
 ## Медиафайлы
 
-Методы `->photo()`, `->video()`, `->audio()` и `->file()` автоматически загружают файл на серверы MAX и прикрепляют его к сообщению. Достаточно передать путь к файлу:
+Пакет поддерживает загрузку и отправку медиафайлов:
 
 ```php
-// Изображение с текстом и кнопкой
-MaxMessage::create('Расчёт стоимости ремонта')
-    ->toChat(-123456)
-    ->photo(storage_path('app/images/banner.jpg'))
+// Изображение
+MaxMessage::create('Фото')
+    ->to($userId)
+    ->photo('/path/to/image.jpg')
+    ->send();
+
+// Видео
+MaxMessage::create('Видео')
+    ->to($userId)
+    ->video('/path/to/video.mp4')
+    ->send();
+
+// Аудио
+MaxMessage::create('Аудио')
+    ->to($userId)
+    ->audio('/path/to/audio.mp3')
+    ->send();
+
+// Файл
+MaxMessage::create('Документ')
+    ->to($userId)
+    ->file('/path/to/document.pdf')
+    ->send();
+```
+
+## Кнопки
+
+```php
+MaxMessage::create('Выберите действие:')
+    ->to($userId)
     ->inlineKeyboard([
         [
-            ['type' => 'link', 'text' => 'Рассчитать стоимость', 'url' => 'https://example.com/calc'],
+            ['type' => 'link', 'text' => 'Открыть сайт', 'url' => 'https://example.com'],
+        ],
+        [
+            ['type' => 'callback', 'text' => 'Нажми меня', 'payload' => 'button_clicked'],
+        ],
+        [
+            ['type' => 'request_contact', 'text' => 'Отправить контакт'],
         ],
     ])
     ->send();
 ```
 
+## Тихая отправка
+
 ```php
-// Отправка документа пользователю
-MaxMessage::create('Ваш отчёт готов')
-    ->to($user->max_user_id)
-    ->file(storage_path('app/reports/report.pdf'))
+MaxMessage::create('Тихое сообщение')
+    ->to($userId)
+    ->silent()
     ->send();
 ```
 
-```php
-// Видео
-MaxMessage::create('Видеоинструкция')
-    ->toChat($chatId)
-    ->video(storage_path('app/videos/tutorial.mp4'))
-    ->send();
-```
+## Миграция с v1.x
 
-Поддерживаемые форматы: изображения (JPG, PNG, GIF, TIFF, BMP, HEIC), видео (MP4, MOV, MKV, WEBM), аудио (MP3, WAV, M4A), файлы (любые). Максимальный размер — 4 ГБ.
-
-> **Примечание:** после загрузки больших файлов может потребоваться небольшая пауза перед отправкой — сервер MAX обрабатывает файл асинхронно. Если получаете ошибку `attachment.not.ready`, повторите отправку через несколько секунд.
-
-## Пример: кнопки
-
-```php
-MaxMessage::create('Выберите действие:')
-    ->inlineKeyboard([
-        // Первый ряд
-        [
-            ['type' => 'callback', 'text' => 'Подтвердить', 'payload' => 'confirm'],
-            ['type' => 'callback', 'text' => 'Отмена', 'payload' => 'cancel'],
-        ],
-        // Второй ряд
-        [
-            ['type' => 'link', 'text' => 'Подробнее', 'url' => 'https://example.com'],
-        ],
-    ]);
-```
-
-## Пример: тихая отправка с HTML-форматированием
-
-```php
-MaxMessage::create('<b>Внимание!</b> Обновление системы в 03:00')
-    ->html()
-    ->silent();
-```
-
-## Обновление с v1.x
-
-В версии 2.0 API URL по умолчанию изменён с `platform-api.max.ru` на `platform-api2.max.ru`. Обновите constraint в `composer.json` вашего проекта:
-
-```json
-"alexwebprog/laravel-notification-channel-max": "^2.0"
-```
-
-Если вы ранее публиковали конфиг (`config/max-notification.php`), опубликуйте его заново для добавления новых параметров:
+В версии 2.0 изменён URL API по умолчанию с `platform-api.max.ru` на `platform-api2.max.ru` и добавлена автоматическая поддержка сертификата Минцифры. Обновите конфигурацию:
 
 ```bash
 php artisan vendor:publish --tag=max-notification-config --force

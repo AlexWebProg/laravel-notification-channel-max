@@ -32,6 +32,9 @@ class MaxMessage
     /** Link to another message. */
     protected ?array $link = null;
 
+    /** Custom bot token for this message. */
+    protected ?string $token = null;
+
     /**
      * Create a new message instance.
      */
@@ -134,6 +137,24 @@ class MaxMessage
     }
 
     /**
+     * Set a custom bot token for this message.
+     */
+    public function token(string $token): static
+    {
+        $this->token = $token;
+
+        return $this;
+    }
+
+    /**
+     * Get the custom bot token, if set.
+     */
+    public function getToken(): ?string
+    {
+        return $this->token;
+    }
+
+    /**
      * Add an inline keyboard attachment.
      *
      * $buttons should be an array of button rows:
@@ -163,7 +184,7 @@ class MaxMessage
     {
         /** @var MaxApi $api */
         $api = app(MaxApi::class);
-        $result = $api->uploadFile($filePath, 'image');
+        $result = $api->uploadFile($filePath, 'image', $this->token);
 
         $this->attachments[] = [
             'type' => 'image',
@@ -182,7 +203,7 @@ class MaxMessage
     {
         /** @var MaxApi $api */
         $api = app(MaxApi::class);
-        $result = $api->uploadFile($filePath, 'video');
+        $result = $api->uploadFile($filePath, 'video', $this->token);
 
         $this->attachments[] = [
             'type' => 'video',
@@ -203,7 +224,7 @@ class MaxMessage
     {
         /** @var MaxApi $api */
         $api = app(MaxApi::class);
-        $result = $api->uploadFile($filePath, 'audio');
+        $result = $api->uploadFile($filePath, 'audio', $this->token);
 
         $this->attachments[] = [
             'type' => 'audio',
@@ -224,7 +245,7 @@ class MaxMessage
     {
         /** @var MaxApi $api */
         $api = app(MaxApi::class);
-        $result = $api->uploadFile($filePath, 'file');
+        $result = $api->uploadFile($filePath, 'file', $this->token);
 
         $this->attachments[] = [
             'type' => 'file',

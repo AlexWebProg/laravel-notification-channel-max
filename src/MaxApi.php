@@ -32,10 +32,10 @@ class MaxApi
     /**
      * Create a configured HTTP client instance.
      */
-    protected function httpClient(): PendingRequest
+    protected function httpClient(?string $token = null): PendingRequest
     {
         $client = Http::withHeaders([
-            'Authorization' => $this->token,
+            'Authorization' => $token ?? $this->token,
         ]);
 
         if ($this->verifySsl === false) {
@@ -61,7 +61,7 @@ class MaxApi
 
         $url = $this->baseUrl . '/messages?' . http_build_query($queryParams);
 
-        $response = $this->httpClient()
+        $response = $this->httpClient($message->getToken())
             ->withHeaders(['Content-Type' => 'application/json'])
             ->post($url, $body);
 
@@ -79,15 +79,16 @@ class MaxApi
      * Get an upload URL from the MAX API.
      *
      * @param  string  $type  Upload type: image, video, audio, file
+     * @param  string|null  $token  Optional custom bot token
      * @return array{url: string, token?: string}
      *
      * @throws CouldNotSendNotification
      */
-    public function getUploadUrl(string $type = 'image'): array
+    public function getUploadUrl(string $type = 'image', ?string $token = null): array
     {
         $url = $this->baseUrl . '/uploads?' . http_build_query(['type' => $type]);
 
-        $response = $this->httpClient()->post($url);
+        $response = $this->httpClient($token)->post($url);
 
         if ($response->failed()) {
             throw CouldNotSendNotification::apiError(
@@ -104,18 +105,19 @@ class MaxApi
      *
      * @param  string  $filePath  Absolute path to the file
      * @param  string  $type  Upload type: image, video, audio, file
+     * @param  string|null  $token  Optional custom bot token
      * @return array  The upload response (contains token for image/file, or other data)
      *
      * @throws CouldNotSendNotification
      */
-    public function uploadFile(string $filePath, string $type = 'image'): array
+    public function uploadFile(string $filePath, string $type = 'image', ?string $token = null): array
     {
         // Step 1: Get upload URL
-        $uploadData = $this->getUploadUrl($type);
+        $uploadData = $this->getUploadUrl($type, $token);
         $uploadUrl = $uploadData['url'];
 
         // Step 2: Upload file to the URL
-        $response = $this->httpClient()
+        $response = $this->httpClient($token)
             ->timeout(120)
             ->attach(
                 'data',
