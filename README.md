@@ -76,6 +76,24 @@ public function routeNotificationForMax(): ?int
 }
 ```
 
+### On-demand уведомления (Notification::route)
+
+Можно отправлять уведомления без привязки к модели через `Notification::route`:
+
+```php
+use Illuminate\Support\Facades\Notification;
+
+// Отправка пользователю по user_id
+Notification::route('max', $maxUserId)
+    ->notify(new MyNotification($data));
+
+// Отправка в чат/канал по chat_id
+Notification::route('max', ['chat_id' => $chatId])
+    ->notify(new MyNotification($data));
+```
+
+Скалярное значение трактуется как `user_id`. Для отправки в чат передайте массив `['chat_id' => $chatId]`.
+
 ### Прямая отправка
 
 Вы можете отправлять сообщения напрямую без уведомлений:
