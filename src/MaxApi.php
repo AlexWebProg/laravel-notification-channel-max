@@ -76,6 +76,53 @@ class MaxApi
     }
 
     /**
+     * Edit a message via the MAX API.
+     *
+     * @throws CouldNotSendNotification
+     */
+    public function editMessage(string $messageId, MaxMessage $message): Response
+    {
+        $queryParams = ['message_id' => $messageId];
+        $body = $message->toBody();
+
+        $url = $this->baseUrl . '/messages?' . http_build_query($queryParams);
+
+        $response = $this->httpClient($message->getToken())
+            ->withHeaders(['Content-Type' => 'application/json'])
+            ->put($url, $body);
+
+        if ($response->failed()) {
+            throw CouldNotSendNotification::apiError(
+                $response->status(),
+                $response->body()
+            );
+        }
+
+        return $response;
+    }
+
+    /**
+     * Delete a message via the MAX API.
+     *
+     * @throws CouldNotSendNotification
+     */
+    public function deleteMessage(string $messageId, ?string $token = null): Response
+    {
+        $url = $this->baseUrl . '/messages?' . http_build_query(['message_id' => $messageId]);
+
+        $response = $this->httpClient($token)->delete($url);
+
+        if ($response->failed()) {
+            throw CouldNotSendNotification::apiError(
+                $response->status(),
+                $response->body()
+            );
+        }
+
+        return $response;
+    }
+
+    /**
      * Get an upload URL from the MAX API.
      *
      * @param  string  $type  Upload type: image, video, audio, file

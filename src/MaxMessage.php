@@ -374,4 +374,37 @@ class MaxMessage
 
         return $api->sendMessage($this)->json();
     }
+
+    /**
+     * Edit an existing message via MaxApi.
+     *
+     * @param  string  $messageId  The ID of the message to edit
+     * @return array
+     *
+     * @throws \NotificationChannels\Max\Exceptions\CouldNotSendNotification
+     */
+    public function edit(string $messageId): array
+    {
+        /** @var MaxApi $api */
+        $api = app(MaxApi::class);
+
+        return $api->editMessage($messageId, $this)->json();
+    }
+
+    /**
+     * Delete a message via MaxApi.
+     *
+     * @param  string  $messageId  The ID of the message to delete
+     * @param  string|null  $token  Optional custom bot token
+     * @return array
+     *
+     * @throws \NotificationChannels\Max\Exceptions\CouldNotSendNotification
+     */
+    public static function delete(string $messageId, ?string $token = null): array
+    {
+        /** @var MaxApi $api */
+        $api = app(MaxApi::class);
+
+        return $api->deleteMessage($messageId, $token)->json();
+    }
 }
