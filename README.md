@@ -160,6 +160,7 @@ public function toMax($notifiable): MaxMessage
 | `attachment(array $attachment)` | Добавить произвольное вложение |
 | `replyTo(string $messageId)` | Ответить на сообщение |
 | `forward(string $messageId)` | Переслать сообщение |
+| `retryWhenNotReady(array $delays)` | Задать паузы повтора при `attachment.not.ready` |
 | `send()` | Отправить сообщение напрямую |
 | `edit(string $messageId)` | Редактировать отправленное сообщение |
 | `delete(string $messageId, ?string $token)` | Удалить сообщение (статический) |
@@ -191,6 +192,26 @@ MaxMessage::create('Аудио')
 MaxMessage::create('Документ')
     ->to($userId)
     ->file('/path/to/document.pdf')
+    ->send();
+```
+
+После загрузки файла MAX может обрабатывать его асинхронно. Если при отправке API вернёт ошибку `attachment.not.ready`, метод `send()` автоматически повторит попытку с паузами (по умолчанию: 1, 1, 2, 2, 3, 3, 3 секунд, суммарно до ~15 секунд). Сам файл повторно не загружается — повторяется только отправка сообщения.
+
+Вы можете задать свои паузы или отключить повторы:
+
+```php
+// Свои паузы между попытками (в секундах)
+MaxMessage::create('Фото')
+    ->to($userId)
+    ->photo('/path/to/image.jpg')
+    ->retryWhenNotReady([2, 5, 10])
+    ->send();
+
+// Отключить автоматический повтор
+MaxMessage::create('Фото')
+    ->to($userId)
+    ->photo('/path/to/image.jpg')
+    ->retryWhenNotReady([])
     ->send();
 ```
 

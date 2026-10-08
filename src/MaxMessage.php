@@ -3,6 +3,7 @@
 namespace NotificationChannels\Max;
 
 use Illuminate\Support\Traits\Conditionable;
+use NotificationChannels\Max\Exceptions\CouldNotSendNotification;
 
 class MaxMessage
 {
@@ -34,6 +35,12 @@ class MaxMessage
 
     /** Custom bot token for this message. */
     protected ?string $token = null;
+
+    /**
+     * Pauses (in seconds) between send attempts while MAX is still processing an uploaded file
+     * and answers `attachment.not.ready`. Total wait is the sum of the values.
+     */
+    protected array $notReadyDelays = [1, 1, 2, 2, 3, 3, 3];
 
     /**
      * Create a new message instance.
@@ -363,7 +370,24 @@ class MaxMessage
     }
 
     /**
+     * Set pauses (in seconds) between attempts to send a message with an uploaded file
+     * while MAX has not finished processing it yet. Empty array disables retries.
+     *
+     * @param  int[]  $delays
+     */
+    public function retryWhenNotReady(array $delays): static
+    {
+        $this->notReadyDelays = $delays;
+
+        return $this;
+    }
+
+    /**
      * Send this message immediately via MaxApi.
+     *
+     * After a file is uploaded MAX processes it asynchronously, and sending a message with it right away
+     * fails with HTTP 400 `attachment.not.ready`. The upload is already done (the attachment token is kept
+     * in this object), so only the sending is repeated, without uploading the file again.
      *
      * @throws \NotificationChannels\Max\Exceptions\CouldNotSendNotification
      */
@@ -371,12 +395,40 @@ class MaxMessage
     {
         /** @var MaxApi $api */
         $api = app(MaxApi::class);
+        $delays = $this->hasUploadedAttachments() ? $this->notReadyDelays : [];
+
+        foreach ($delays as $delay) {
+            try {
+                return $api->sendMessage($this)->json();
+            } catch (CouldNotSendNotification $e) {
+                if (! str_contains($e->getMessage(), 'attachment.not.ready')) {
+                    throw $e;
+                }
+                sleep($delay);
+            }
+        }
 
         return $api->sendMessage($this)->json();
     }
 
     /**
+     * Message has an uploaded media (image, video, audio, file) — not just a keyboard.
+     */
+    protected function hasUploadedAttachments(): bool
+    {
+        foreach ($this->attachments as $attachment) {
+            if (($attachment['type'] ?? null) !== 'inline_keyboard') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Edit an existing message via MaxApi.
+     *
+     * Supports the same `attachment.not.ready` retry logic as send().
      *
      * @param  string  $messageId  The ID of the message to edit
      * @return array
@@ -387,6 +439,18 @@ class MaxMessage
     {
         /** @var MaxApi $api */
         $api = app(MaxApi::class);
+        $delays = $this->hasUploadedAttachments() ? $this->notReadyDelays : [];
+
+        foreach ($delays as $delay) {
+            try {
+                return $api->editMessage($messageId, $this)->json();
+            } catch (CouldNotSendNotification $e) {
+                if (! str_contains($e->getMessage(), 'attachment.not.ready')) {
+                    throw $e;
+                }
+                sleep($delay);
+            }
+        }
 
         return $api->editMessage($messageId, $this)->json();
     }
